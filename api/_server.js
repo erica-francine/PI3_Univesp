@@ -3,10 +3,17 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const { exec } = require('child_process');
+const cookieParser = require('cookie-parser');
+const userRouter = require('./routes/userRouter'); // Importando o userRouter
+const path = require('path');
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
+
 
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -34,6 +41,8 @@ exec('node ./api/importadores/importAll.js', (error, stdout, stderr) => {
 app.use('/medicamentos', require('./routes/medicamentos'));
 app.use('/exames', require('./routes/exames'));
 app.use('/cid10', require('./routes/cid10'));
+app.use('/user', express.json(),userRouter)
+//app.use(express.static(path.join(__dirname, '../../public')));
 
 // Rota para executar o importador
 app.get('/importar', (req, res) => {
@@ -55,6 +64,6 @@ app.get('/importar', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, () => {  
   console.log(`API rodando em http://localhost:${PORT}`);
 });

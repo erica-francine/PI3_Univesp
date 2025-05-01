@@ -3,10 +3,18 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const { exec } = require('child_process');
-
+const cookieParser = require('cookie-parser');
+const viewRouter = require('./api/routes/viewRouter'); // Ajuste o caminho conforme necessário
 const app = express();
+const path = require('path');
+
+
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
+app.use(express.static(path.join(__dirname, 'public')));
+
 
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -34,6 +42,10 @@ exec('node ./api/importadores/importAll.js', (error, stdout, stderr) => {
 app.use('/medicamentos', require('./api/routes/medicamentos'));
 app.use('/exames', require('./api/routes/exames'));
 app.use('/cid10', require('./api/routes/cid10'));
+app.use('/user', express.json(),require('./api/routes/userRouter')); // Usando userRouter para login, registro e logout
+app.use('/', viewRouter);
+
+
 
 // Rota para executar o importador
 app.get('/importar', (req, res) => {
