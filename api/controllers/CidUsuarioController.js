@@ -3,14 +3,17 @@ const Cid10 = require('../models/Cid10'); // Importa o modelo Cid10
 
 const CidUsuarioController = {
     // Função para cadastrar um diagnóstico no modelo CidUsuario
-    async cadastrarCidUsuario(req, res) {
+    async cadastrarCidUsuario(req, res = null, session = null) {
         try {
             const { usuarioId, cidId, observacoes, consultaId } = req.body;
 
             // Verifica se o CID-10 existe
             const cid = await Cid10.findById(cidId);
             if (!cid) {
-                return res.status(404).json({ message: 'CID-10 não encontrado.' });
+                if (res) {
+                    return res.status(404).json({ message: 'CID-10 não encontrado.' });
+                }
+                throw new Error('CID-10 não encontrado.');
             }
 
             // Cria o registro no modelo CidUsuario
@@ -21,11 +24,26 @@ const CidUsuarioController = {
                 consultaId: consultaId || null // Consulta é opcional
             });
 
-            const cidUsuarioSalvo = await novoCidUsuario.save();
-            res.status(201).json(cidUsuarioSalvo);
+            // Salva o CID, com ou sem sessão
+            const cidUsuarioSalvo = await novoCidUsuario.save(session ? { session } : {});
+
+            // Se `res` foi passado, retorna a resposta HTTP
+            if (res) {
+                return res.status(201).json(cidUsuarioSalvo);
+            }
+
+            // Caso contrário, retorna o objeto salvo (para uso interno)
+            return cidUsuarioSalvo;
         } catch (error) {
             console.error('Erro ao cadastrar CID para o usuário:', error);
-            res.status(500).json({ message: 'Erro interno no servidor.' });
+
+            // Se `res` foi passado, retorna o erro como resposta HTTP
+            if (res) {
+                return res.status(500).json({ message: 'Erro interno no servidor.' });
+            }
+
+            // Caso contrário, lança o erro para ser tratado pelo chamador
+            throw error;
         }
     },
 

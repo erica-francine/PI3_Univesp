@@ -3,14 +3,17 @@ const Exame = require('../models/Exame'); // Importa o modelo Exame
 
 const ExameUsuarioController = {
     // Função para cadastrar um exame no modelo ExameUsuario
-    async cadastrarExameUsuario(req, res) {
+    async cadastrarExameUsuario(req, res = null, session = null) {
         try {
             const { usuarioId, exameId, dataRealizacao, resultado, consultaId } = req.body;
 
             // Verifica se o exame existe
             const exame = await Exame.findById(exameId);
             if (!exame) {
-                return res.status(404).json({ message: 'Exame não encontrado.' });
+                if (res) {
+                    return res.status(404).json({ message: 'Exame não encontrado.' });
+                }
+                throw new Error('Exame não encontrado.');
             }
 
             // Cria o registro no modelo ExameUsuario
@@ -22,11 +25,26 @@ const ExameUsuarioController = {
                 consultaId: consultaId || null // Consulta é opcional
             });
 
-            const exameUsuarioSalvo = await novoExameUsuario.save();
-            res.status(201).json(exameUsuarioSalvo);
+            // Salva o exame, com ou sem sessão
+            const exameUsuarioSalvo = await novoExameUsuario.save(session ? { session } : {});
+
+            // Se `res` foi passado, retorna a resposta HTTP
+            if (res) {
+                return res.status(201).json(exameUsuarioSalvo);
+            }
+
+            // Caso contrário, retorna o objeto salvo (para uso interno)
+            return exameUsuarioSalvo;
         } catch (error) {
             console.error('Erro ao cadastrar exame para o usuário:', error);
-            res.status(500).json({ message: 'Erro interno no servidor.' });
+
+            // Se `res` foi passado, retorna o erro como resposta HTTP
+            if (res) {
+                return res.status(500).json({ message: 'Erro interno no servidor.' });
+            }
+
+            // Caso contrário, lança o erro para ser tratado pelo chamador
+            throw error;
         }
     },
 

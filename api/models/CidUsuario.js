@@ -34,4 +34,7 @@ const CidUsuarioSchema = new mongoose.Schema({
     timestamps: true
 });
 
-module.exports = model('CidUsuario', CidUsuarioSchema);
+
+
+
+module.exports = mongoose.model('CidUsuario', CidUsuarioSchema);

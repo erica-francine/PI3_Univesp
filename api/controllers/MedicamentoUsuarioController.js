@@ -2,13 +2,16 @@ const MedicamentoUsuario = require('../models/MedicamentoUsuario'); // Importa o
 
 const MedicamentoController = {
     // Função para cadastrar um medicamento no modelo MedicamentoUsuario
-    async cadastrarMedicamentoUsuario(req, res) {
+    async cadastrarMedicamentoUsuario(req, res = null, session = null) {
         try {
             const { usuarioId, medicamentoId, inicio, dosagem, periodicidade, usoContinuo, consultaId } = req.body;
 
             // Validação básica para periodicidade
             if (!periodicidade || !periodicidade.tipo) {
-                return res.status(400).json({ message: 'O campo periodicidade é obrigatório e deve conter o tipo.' });
+                if (res) {
+                    return res.status(400).json({ message: 'O campo periodicidade é obrigatório e deve conter o tipo.' });
+                }
+                throw new Error('O campo periodicidade é obrigatório e deve conter o tipo.');
             }
 
             // Cria o registro no modelo MedicamentoUsuario
@@ -22,16 +25,31 @@ const MedicamentoController = {
                 consultaId: consultaId || null // Consulta é opcional
             });
 
-            const medicamentoUsuarioSalvo = await novoMedicamentoUsuario.save();
-            res.status(201).json(medicamentoUsuarioSalvo);
+            // Salva o medicamento, com ou sem sessão
+            const medicamentoUsuarioSalvo = await novoMedicamentoUsuario.save(session ? { session } : {});
+
+            // Se `res` foi passado, retorna a resposta HTTP
+            if (res) {
+                return res.status(201).json(medicamentoUsuarioSalvo);
+            }
+
+            // Caso contrário, retorna o objeto salvo (para uso interno)
+            return medicamentoUsuarioSalvo;
         } catch (error) {
             console.error('Erro ao cadastrar medicamento para o usuário:', error);
-            res.status(500).json({ message: 'Erro interno no servidor.' });
+
+            // Se `res` foi passado, retorna o erro como resposta HTTP
+            if (res) {
+                return res.status(500).json({ message: 'Erro interno no servidor.' });
+            }
+
+            // Caso contrário, lança o erro para ser tratado pelo chamador
+            throw error;
         }
     },
 
     // Função para listar todos os medicamentos
-    async listarMedicamentos(req, res) {
+    async listarMedicamentosUsuario(req, res) {
         try {
             const medicamentos = await MedicamentoUsuario.find();
             res.status(200).json(medicamentos);
@@ -60,7 +78,7 @@ const MedicamentoController = {
 
 
     // Função para excluir um medicamento
-    async excluirMedicamento(req, res) {
+    async excluirMedicamentoUsuario(req, res) {
         try {
             const { id } = req.params;
 
