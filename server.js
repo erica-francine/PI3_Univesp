@@ -4,9 +4,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const { exec } = require('child_process');
 const cookieParser = require('cookie-parser');
-const viewRouter = require('./api/routes/viewRouter'); // Ajuste o caminho conforme necessário
 const app = express();
 const path = require('path');
+const mainRouter = require('./api/routes/router');
+const viewRouter = require('./api/routes/viewRouter');
 
 
 app.use(cors());
@@ -44,6 +45,7 @@ app.use('/exames', require('./api/routes/exames'));
 app.use('/cid10', require('./api/routes/cid10'));
 app.use('/user', express.json(),require('./api/routes/userRouter')); // Usando userRouter para login, registro e logout
 app.use('/', viewRouter);
+app.use('/fichaMedica', mainRouter); 
 
 
 
