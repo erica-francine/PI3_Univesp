@@ -5,10 +5,10 @@ const CidUsuarioController = {
     // Função para cadastrar um diagnóstico no modelo CidUsuario
     async cadastrarCidUsuario(req, res = null, session = null) {
         try {
-            const { usuarioId, cidId, observacoes, consultaId } = req.body;
+            const { usuarioId, cid10Id, dataDiagnostico, dataFinalizacao, consultaId, status } = req.body;
 
             // Verifica se o CID-10 existe
-            const cid = await Cid10.findById(cidId);
+            const cid = await Cid10.findById(cid10Id);
             if (!cid) {
                 if (res) {
                     return res.status(404).json({ message: 'CID-10 não encontrado.' });
@@ -19,14 +19,21 @@ const CidUsuarioController = {
             // Cria o registro no modelo CidUsuario
             const novoCidUsuario = new CidUsuario({
                 usuarioId,
-                cidId,
-                observacoes,
-                consultaId: consultaId || null // Consulta é opcional
+                cid10Id,
+                dataDiagnostico,
+                dataFinalizacao,
+                consultaId: consultaId || null,
+                status: status || 'ativo'
             });
 
             // Salva o CID, com ou sem sessão
-            const cidUsuarioSalvo = await novoCidUsuario.save(session ? { session } : {});
-
+            let cidUsuarioSalvo;
+            if (session && typeof session === 'object' && typeof session.inTransaction === 'function') {
+                cidUsuarioSalvo = await novoCidUsuario.save({ session });
+            } else {
+                cidUsuarioSalvo = await novoCidUsuario.save();
+            }
+                    
             // Se `res` foi passado, retorna a resposta HTTP
             if (res) {
                 return res.status(201).json(cidUsuarioSalvo);
@@ -50,7 +57,7 @@ const CidUsuarioController = {
     // Função para listar todos os diagnósticos de usuários
     async listarCidsUsuarios(req, res) {
         try {
-            const cidsUsuarios = await CidUsuario.find().populate('cidId'); // Popula os dados do CID-10
+            const cidsUsuarios = await CidUsuario.find().populate('cid10Id'); // Popula os dados do CID-10
             res.status(200).json(cidsUsuarios);
         } catch (error) {
             console.error('Erro ao listar CIDs de usuários:', error);
@@ -63,7 +70,7 @@ const CidUsuarioController = {
         try {
             const { id } = req.params;
 
-            const cidUsuario = await CidUsuario.findById(id).populate('cidId'); // Popula os dados do CID-10
+            const cidUsuario = await CidUsuario.findById(id).populate('cid10Id'); // Popula os dados do CID-10
             if (!cidUsuario) {
                 return res.status(404).json({ message: 'CID do usuário não encontrado.' });
             }
@@ -79,11 +86,25 @@ const CidUsuarioController = {
     async atualizarCidUsuario(req, res) {
         try {
             const { id } = req.params;
-            const { observacoes } = req.body;
+            const {
+                usuarioId,
+                cid10Id,
+                dataDiagnostico,
+                dataFinalizacao,
+                consultaId,
+                status
+            } = req.body;
 
             const cidUsuarioAtualizado = await CidUsuario.findByIdAndUpdate(
                 id,
-                { observacoes },
+                {
+                    usuarioId,
+                    cid10Id,
+                    dataDiagnostico,
+                    dataFinalizacao,
+                    consultaId,
+                    status
+                },
                 { new: true } // Retorna o documento atualizado
             );
 

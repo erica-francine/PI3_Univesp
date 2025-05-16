@@ -5,7 +5,7 @@ const ExameUsuarioController = {
     // Função para cadastrar um exame no modelo ExameUsuario
     async cadastrarExameUsuario(req, res = null, session = null) {
         try {
-            const { usuarioId, exameId, dataRealizacao, resultado, consultaId } = req.body;
+            const { usuarioId, exameId, data, resultado, consultaId } = req.body;
 
             // Verifica se o exame existe
             const exame = await Exame.findById(exameId);
@@ -20,13 +20,18 @@ const ExameUsuarioController = {
             const novoExameUsuario = new ExameUsuario({
                 usuarioId,
                 exameId,
-                dataRealizacao,
+                data,
                 resultado,
                 consultaId: consultaId || null // Consulta é opcional
             });
 
             // Salva o exame, com ou sem sessão
-            const exameUsuarioSalvo = await novoExameUsuario.save(session ? { session } : {});
+            let exameUsuarioSalvo;
+            if (session && typeof session === 'object' && typeof session.inTransaction === 'function') {
+                exameUsuarioSalvo = await novoExameUsuario.save({ session });
+            } else {
+                exameUsuarioSalvo = await novoExameUsuario.save();
+            }
 
             // Se `res` foi passado, retorna a resposta HTTP
             if (res) {
@@ -80,11 +85,11 @@ const ExameUsuarioController = {
     async atualizarExameUsuario(req, res) {
         try {
             const { id } = req.params;
-            const { dataRealizacao, resultado } = req.body;
+            const { data, resultado } = req.body;
 
             const exameUsuarioAtualizado = await ExameUsuario.findByIdAndUpdate(
                 id,
-                { dataRealizacao, resultado },
+                { data, resultado },
                 { new: true } // Retorna o documento atualizado
             );
 

@@ -12,9 +12,27 @@ const ConsultasUsuarioController = {
     async listarConsultas(req, res) {
         try {
             const consultas = await ConsultaUsuario.find()
-                .populate('medicamentos.medicamentoUsuarioId') // Popula os medicamentos
-                .populate('exames.exameUsuarioId') // Popula os exames
-                .populate('cid10.cidUsuarioId'); // Popula os CIDs
+                .populate({
+                    path: 'medicamentos.medicamentoUsuarioId',
+                    populate: {
+                        path: 'medicamentoId', // campo do MedicamentoUsuario que referencia Medicamento
+                        model: 'Medicamento'
+                    }
+                })
+                .populate({
+                    path: 'exames.exameUsuarioId',
+                    populate: {
+                        path: 'exameId',
+                        model: 'Exame'
+                    }
+                })
+                .populate({
+                    path: 'cid10.cidUsuarioId',
+                    populate: {
+                        path: 'cid10Id',
+                        model: 'Cid10'
+                    }
+                }); // Popula os CIDs
 
             res.status(200).json(consultas);
         } catch (error) {
@@ -33,7 +51,7 @@ const ConsultasUsuarioController = {
 
             // 1. Cadastrar medicamentos
             const medicamentosCadastrados = await Promise.all(
-                medicamentos.map(async (medicamento) => {
+                (medicamentos || []).map(async (medicamento) => {
                     const reqMedicamento = {
                         body: {
                             usuarioId,
@@ -51,12 +69,12 @@ const ConsultasUsuarioController = {
 
             // 2. Cadastrar exames
             const examesCadastrados = await Promise.all(
-                exames.map(async (exame) => {
+                (exames || []).map(async (exame) => {
                     const reqExame = {
                         body: {
                             usuarioId,
                             exameId: exame.exameId,
-                            dataRealizacao: exame.dataRealizacao,
+                            data: exame.data,
                             resultado: exame.resultado
                         }
                     };
@@ -67,12 +85,13 @@ const ConsultasUsuarioController = {
 
             // 3. Cadastrar CIDs
             const cidsCadastrados = await Promise.all(
-                cid10.map(async (cid) => {
+                (cid10 || []).map(async (cid) => {
                     const reqCid = {
                         body: {
                             usuarioId,
-                            cidId: cid.cidId,
-                            observacoes: cid.observacoes
+                            cid10Id: cid.cid10Id,
+                            dataDiagnostico: cid.dataDiagnostico,
+                            dataFinalizacao: cid.dataFinalizacao,
                         }
                     };
                     const resCid = await CidUsuarioController.cadastrarCidUsuario(reqCid, null, session);

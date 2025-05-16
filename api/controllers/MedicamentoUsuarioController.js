@@ -1,4 +1,5 @@
 const MedicamentoUsuario = require('../models/MedicamentoUsuario'); // Importa o modelo MedicamentoUsuario
+const Medicamento = require('../models/Medicamento'); // Adicione no topo do arquivo
 
 const MedicamentoController = {
     // Função para cadastrar um medicamento no modelo MedicamentoUsuario
@@ -14,6 +15,14 @@ const MedicamentoController = {
                 throw new Error('O campo periodicidade é obrigatório e deve conter o tipo.');
             }
 
+            const medicamento = await Medicamento.findById(medicamentoId);
+            if (!medicamento) {
+                if (res) {
+                    return res.status(404).json({ message: 'Medicamento não encontrado.' });
+                }
+                throw new Error('Medicamento não encontrado.');
+            }
+
             // Cria o registro no modelo MedicamentoUsuario
             const novoMedicamentoUsuario = new MedicamentoUsuario({
                 usuarioId,
@@ -26,11 +35,16 @@ const MedicamentoController = {
             });
 
             // Salva o medicamento, com ou sem sessão
-            const medicamentoUsuarioSalvo = await novoMedicamentoUsuario.save(session ? { session } : {});
+            let medicamentoUsuarioSalvo;
+            if (session && typeof session === 'object' && typeof session.inTransaction === 'function') {
+                medicamentoUsuarioSalvo = await novoMedicamentoUsuario.save({ session });
+            } else {
+                medicamentoUsuarioSalvo = await novoMedicamentoUsuario.save();
+            }
 
             // Se `res` foi passado, retorna a resposta HTTP
             if (res) {
-                return res.status(201).json(medicamentoUsuarioSalvo);
+                return res.status(201).json(medicamentoUsuarioSalvo); // Certifique-se de retornar o objeto salvo
             }
 
             // Caso contrário, retorna o objeto salvo (para uso interno)
@@ -64,7 +78,7 @@ const MedicamentoController = {
         try {
             const { id } = req.params;
 
-            const medicamento = await Medicamento.findById(id);
+            const medicamento = await MedicamentoUsuario.findById(id);
             if (!medicamento) {
                 return res.status(404).json({ message: 'Medicamento não encontrado.' });
             }
