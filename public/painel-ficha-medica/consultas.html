@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultas - Ficha Médica</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/cadastro.css">
+  <link rel="stylesheet" href="../css/header.css">
+  <div id="header-container"></div>
+</head>
+<body>
+
+  <div class="content-app">
+    <div class="header">
+      <h1>Consultas</h1>
+    </div>
+
+    <div class="actions" style="margin-bottom: 1rem;">
+      <a href="/cadastro" onclick="localStorage.removeItem('consultaEditada')" class="btn btn-primary">+ Nova Consulta</a>
+    </div>
+
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th>Data</th>
+          <th>Médico</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="lista-consultas">
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Função para carregar o header
+    function incluirHeader() {
+        fetch('/header')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao carregar o header.');
+            }
+                return response.text();
+            })
+        .then(data => {
+            document.getElementById('header-container').innerHTML = data;
+
+            // Após carregar o header, configure o usuário logado
+            const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
+            if (usuarioLogado) {
+                const userId = JSON.parse(localStorage.getItem('userId'));
+                const userName = JSON.parse(localStorage.getItem('userName'));
+                const firstName = userName.split(' ')[0];
+                document.getElementById('userGreeting').textContent = `Olá, ${firstName}`;
+            } else {
+                alert('Nenhum usuário logado.');
+                window.location.href = '/';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao incluir o header:', error);
+        });
+    }
+    // Chama a função ao carregar a página
+    document.addEventListener('DOMContentLoaded', incluirHeader);
+
+    function logout() {
+        localStorage.removeItem('usuarioLogado');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userId');
+        window.location.href = '/'; // Redireciona para a página de login
+    }
+
+    let consultas = []; // Variável global para armazenar as consultas
+
+    function exibirConsultas(consultas) {
+        const tabela = document.getElementById('lista-consultas');
+        tabela.innerHTML = ''; // Limpa a tabela antes de preencher
+
+        if (!consultas || consultas.length === 0) {
+            // Exibe uma mensagem caso não existam consultas
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td colspan="4" style="text-align: center;">Nenhuma consulta encontrada.</td>
+            `;
+            tabela.appendChild(row);
+            return;
+        }
+
+        consultas.forEach(consulta => {
+            console.log('Consultas:', consulta); // Log para verificar as consultas
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${consulta.descricao}</td>
+                <td>${new Date(consulta.dataConsulta).toLocaleDateString()}</td>
+                <td>${consulta.nomeMedico}</td>
+                <td>
+                    <button class="btn btn-primary" onclick="editarConsulta('${consulta._id}')">Editar</button>
+                    <button class="btn btn-danger" onclick="excluirConsulta('${consulta._id}')">Excluir</button>
+                </td>
+            `;
+            tabela.appendChild(row);
+        });
+    }
+
+    function excluirConsulta(id) {
+        const index = consultas.findIndex(c => c._id === id); // Encontra a consulta pelo ID
+        if (index !== -1) {
+            if (confirm('Deseja realmente excluir esta consulta?')) {
+                // Faz a requisição DELETE ao backend
+                fetch(`http://localhost:3000/consultaUsuario/${id}`, {
+                    method: 'delete',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erro ao excluir a consulta.');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    // Remove a consulta do array local
+                    consultas.splice(index, 1);
+                    // Atualiza a tabela
+                    exibirConsultas(consultas);
+                    alert('Consulta excluída com sucesso.');
+                })
+                .catch(error => {
+                    console.error('Erro ao excluir a consulta:', error);
+                    alert('Erro ao excluir a consulta.');
+                });
+            }
+        } else {
+            alert('Consulta não encontrada.');
+        }
+    }
+
+    // Função para carregar consultas do usuário
+    function carregarConsultas() {
+        const userId = JSON.parse(localStorage.getItem('userId'));
+        if (!userId) {
+            alert('Nenhum usuário logado.');
+            window.location.href = '/';
+            return;
+        }
+
+        fetch(`http://localhost:3000/consultaUsuario/${userId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar consultas.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                consultas = data; // Armazena as consultas na variável global
+                exibirConsultas(consultas);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar consultas:', error);
+                alert('Erro ao carregar consultas do usuário.');
+            });
+    }
+
+    function editarConsulta(id) {
+        const consulta = consultas.find(c => c._id === id); // Encontra a consulta pelo ID
+        if (consulta) {
+            // Busca os detalhes de medicamentos, exames e CID-10
+            Promise.all([
+                fetch(`http://localhost:3000/medicamentosUsuario/${consulta._id}`).then(res => res.json()),
+                fetch(`http://localhost:3000/examesUsuario/${consulta._id}`).then(res => res.json()),
+                fetch(`http://localhost:3000/cidsUsuario/${consulta._id}`).then(res => res.json())
+            ])
+            .then(([medicamentos, exames, cid10]) => {
+                // Adiciona os dados detalhados à consulta
+                consulta.medicamentos = medicamentos;
+                consulta.exames = exames;
+                consulta.cid10 = cid10;
+
+                // Armazena os dados da consulta no localStorage
+                localStorage.setItem('consultaEditada', JSON.stringify(consulta));
+
+                // Redireciona para a página de cadastro
+                window.location.href = '/cadastro';
+            })
+            .catch(error => {
+                console.error('Erro ao buscar detalhes da consulta:', error);
+                alert('Erro ao carregar os detalhes da consulta.');
+            });
+        } else {
+            alert('Consulta não encontrada.');
+        }
+    }
+
+    // Chama a função ao carregar a página
+    document.addEventListener('DOMContentLoaded', () => {
+        incluirHeader();
+        carregarConsultas();
+    });
+  </script>
+</body>
+</html>

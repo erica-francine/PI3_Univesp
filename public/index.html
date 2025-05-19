@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sistema Ficha Médica Online - Login</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+		<link rel="stylesheet" href="./css/login.css">
+    </head>
+    <body>
+        <div class="container auth-container">
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="showTab('login')">Login</div>
+                <div class="auth-tab" onclick="showTab('register')">Cadastro</div>
+            </div>
+
+            <div class="auth-content">
+                <div class="logo">
+                    <h2>💊 Sistema Ficha Médica Online</h2>
+                </div>
+
+                <!-- Formulário de Login -->
+                <div id="login-form">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="loginCpf">CPF</label>
+                            <input type="text" class="form-control" id="loginCpf" placeholder="Digite seu CPF" required>
+                            <div class="invalid-feedback">Por favor, insira um CPF válido</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Senha</label>
+                            <input type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" required>
+                            <i class="fas fa-eye password-toggle" onclick="togglePassword('loginPassword')"></i>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                    </form>
+                </div>
+
+                <!-- Formulário de Cadastro -->
+                <div id="register-form" style="display: none;">
+                    <form id="registerForm">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label for="regName">Nome Completo</label>
+                                <input type="text" class="form-control" id="regName" required>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="regCpf">CPF</label>
+                                <input type="text" class="form-control" id="regCpf" placeholder="000.000.000-00" required>
+                                <div class="invalid-feedback">Por favor, insira um CPF válido</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label for="regEmail">E-mail</label>
+                                <input type="email" class="form-control" id="regEmail" placeholder="exemplo@email.com" required>
+                                <div class="invalid-feedback">Por favor, insira um e-mail válido</div>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="regPhone">Telefone</label>
+                                <input type="tel" class="form-control" id="regPhone" placeholder="(00) 00000-0000" required>
+                                <div class="invalid-feedback">Por favor, insira um telefone válido</div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label for="regGender">Sexo</label>
+                                <select class="form-control" id="regGender" required>
+                                    <option value="">Selecione</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Feminino">Feminino</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="regBirth">Data de Nascimento</label>
+                                <input type="date" class="form-control" id="regBirth" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label for="regPassword">Senha (mínimo 8 caracteres)</label>
+                                <input type="password" class="form-control" id="regPassword" minlength="6" required>
+                                <i class="fas fa-eye password-toggle" onclick="togglePassword('regPassword')"></i>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="regConfirmPassword">Confirmar Senha</label>
+                                <input type="password" class="form-control" id="regConfirmPassword" required>
+                                <i class="fas fa-eye password-toggle" onclick="togglePassword('regConfirmPassword')"></i>
+                                <div class="invalid-feedback">As senhas não coincidem</div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+        <script>
+            // Alternar entre login e cadastro
+            function showTab(tabName) {
+                document.querySelectorAll('.auth-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('register-form').style.display = 'none';
+
+                if (tabName === 'login') {
+                    document.querySelector('.auth-tab:nth-child(1)').classList.add('active');
+                    document.getElementById('login-form').style.display = 'block';
+                } else {
+                    document.querySelector('.auth-tab:nth-child(2)').classList.add('active');
+                    document.getElementById('register-form').style.display = 'block';
+                }
+            }
+
+            // Mostrar/ocultar senha
+            function togglePassword(id) {
+                const input = document.getElementById(id);
+                const icon = input.nextElementSibling;
+
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.replace('fa-eye', 'fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.replace('fa-eye-slash', 'fa-eye');
+                }
+            }
+
+            // Validação de CPF
+            function validarCPF(cpf) {
+                cpf = cpf.replace(/[^\d]+/g,'');
+                if(cpf == '') return false;
+
+                // Elimina CPFs invalidos conhecidos
+                if (cpf.length != 11 ||
+                    cpf == "00000000000" ||
+                    cpf == "11111111111" ||
+                    cpf == "22222222222" ||
+                    cpf == "33333333333" ||
+                    cpf == "44444444444" ||
+                    cpf == "55555555555" ||
+                    cpf == "66666666666" ||
+                    cpf == "77777777777" ||
+                    cpf == "88888888888" ||
+                    cpf == "99999999999")
+                    return false;
+
+                // Valida 1o digito
+                let add = 0;
+                for (let i=0; i < 9; i++)
+                    add += parseInt(cpf.charAt(i)) * (10 - i);
+                let rev = 11 - (add % 11);
+                if (rev == 10 || rev == 11)
+                    rev = 0;
+                if (rev != parseInt(cpf.charAt(9)))
+                    return false;
+
+                // Valida 2o digito
+                add = 0;
+                for (let i=0; i < 10; i++)
+                    add += parseInt(cpf.charAt(i)) * (11 - i);
+                rev = 11 - (add % 11);
+                if (rev == 10 || rev == 11)
+                    rev = 0;
+                if (rev != parseInt(cpf.charAt(10)))
+                    return false;
+
+                return true;
+            }
+
+            // Validação de e-mail
+            function validarEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+
+            // Configuração inicial
+            document.addEventListener('DOMContentLoaded', function() {
+                // Máscaras
+                $('#loginCpf, #regCpf').mask('000.000.000-00', {reverse: false});
+                $('#regPhone').mask('(00) 00000-0000');
+
+                // Validação em tempo real
+                document.getElementById('regCpf').addEventListener('blur', function() {
+                    const cpf = this.value.replace(/[^\d]+/g,'');
+                    const isValid = validarCPF(cpf);
+
+                    if (cpf && !isValid) {
+                        this.classList.add('is-invalid');
+                        this.nextElementSibling.style.display = 'block';
+                    } else {
+                        this.classList.remove('is-invalid');
+                        this.nextElementSibling.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('regEmail').addEventListener('blur', function() {
+                    const isValid = validarEmail(this.value);
+
+                    if (this.value && !isValid) {
+                        this.classList.add('is-invalid');
+                        this.nextElementSibling.style.display = 'block';
+                    } else {
+                        this.classList.remove('is-invalid');
+                        this.nextElementSibling.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('regConfirmPassword').addEventListener('input', function() {
+                    const password = document.getElementById('regPassword').value;
+                    const confirmPassword = this.value;
+
+                    if (password && confirmPassword && password !== confirmPassword) {
+                        this.classList.add('is-invalid');
+                        this.nextElementSibling.style.display = 'block';
+                    } else {
+                        this.classList.remove('is-invalid');
+                        this.nextElementSibling.style.display = 'none';
+                    }
+                });
+            });
+
+            // Validação do formulário de login
+            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const cpf = document.getElementById('loginCpf').value;
+                const password = document.getElementById('loginPassword').value;
+
+                if (!validarCPF(cpf.replace(/[^\d]+/g,''))) {
+                    document.getElementById('loginCpf').classList.add('is-invalid');
+                    document.getElementById('loginCpf').nextElementSibling.style.display = 'block';
+                    return;
+                }
+
+            // Remove a classe de erro se o CPF for válido
+            document.getElementById('loginCpf').classList.remove('is-invalid');
+            document.getElementById('loginCpf').nextElementSibling.style.display = 'none';
+
+
+            try {
+                // Chamada para a API de autenticação
+                const response = await fetch('/user/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cpf: cpf.replace(/[^\d]+/g, ''), senha: password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('usuarioLogado', JSON.stringify(data.message));
+                    localStorage.setItem('userName', JSON.stringify(data.userName));
+                    localStorage.setItem('userId', JSON.stringify(data.userId));
+                    // console.log('Resposta do servidor:', data);
+
+                    // Redireciona para a página inicial ou outra rota
+                    window.location.href = '/home';
+                } else {
+                    const error = await response.json();
+                    alert(`Erro no login: ${error.message || 'Erro desconhecido'}`);
+                }
+            } catch (err) {
+                console.error('Erro na requisição:', err);
+                alert('Erro ao conectar ao servidor.');
+            }
+        });
+
+            // Validação do formulário de cadastro
+            document.getElementById('registerForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                // Validar todos os campos
+                let isValid = true;
+                const cpf = document.getElementById('regCpf').value.replace(/[^\d]+/g, '');
+                const email = document.getElementById('regEmail').value;
+                const password = document.getElementById('regPassword').value;
+                const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+                if (!validarCPF(cpf)) {
+                    document.getElementById('regCpf').classList.add('is-invalid');
+                    document.getElementById('regCpf').nextElementSibling.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (!validarEmail(email)) {
+                    document.getElementById('regEmail').classList.add('is-invalid');
+                    document.getElementById('regEmail').nextElementSibling.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (password !== confirmPassword) {
+                    document.getElementById('regConfirmPassword').classList.add('is-invalid');
+                    document.getElementById('regConfirmPassword').nextElementSibling.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (!isValid) return;
+
+                const userData = {
+                    nome: document.getElementById('regName').value,
+                    cpf: cpf,
+                    email: email,
+                    telefone: document.getElementById('regPhone').value.replace(/[^\d]+/g, ''),
+                    sexo: document.getElementById('regGender').value,
+                    dataNascimento: document.getElementById('regBirth').value,
+                    senha: password,
+                };
+
+                try {
+                    // Chamada para a API de cadastro
+                    const response = await fetch('/user/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(userData),
+                    });
+
+                    if (response.ok) {
+                        alert('Cadastro realizado com sucesso!');
+                        console.log('Usuário cadastrado:', await response.json());
+
+                        // Volta para a aba de login após o cadastro
+                        showTab('login');
+                    } else {
+                        const error = await response.json();
+                        alert(`Erro no cadastro: ${error.message || 'Erro desconhecido'}`);
+                    }
+                } catch (err) {
+                    console.error('Erro na requisição:', err);
+                    alert('Erro ao conectar ao servidor.');
+                }
+            });
+        </script>
+    </body>
+</html>

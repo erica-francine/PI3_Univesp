@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Cadastro - Ficha Médica</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+		<link rel="stylesheet" href="../css/cadastro.css">
+		<link rel="stylesheet" href="../css/header.css">
+		<div id="header-container"></div>
+	</head>
+	<body>
+		<div class="content-app">
+			<div class="header">
+				<h1>Sistema Ficha Médica Online</h1>
+			</div>
+
+			<form id="formConsulta">
+
+				<!-- Descrição da Consulta -->
+				<div class="search-section">
+					<h2><span class="section-icon">📝</span> Descrição da Consulta</h2>
+					<div class="search-container">
+						<textarea id="consultaDescricao" class="form-control" placeholder="Digite a descrição da consulta..." rows="3" required></textarea>
+					</div>
+				</div>
+
+				<!-- Data da Consulta -->
+				<div class="search-section">
+					<h2><span class="section-icon">📅</span> Data da Consulta</h2>
+					<div class="search-container">
+						<input type="date" id="consultaData" class="form-control" required>
+					</div>
+				</div>
+
+				<!-- Nome do Medico -->
+				<div class="search-section">
+					<h2><span class="section-icon">🩺</span> Nome do Médico</h2>
+					<div class="search-container">
+						<input type="text" id="consultaMedico" class="form-control" placeholder="Digite o nome do médico" required>
+					</div>
+				</div>
+
+				<!-- Seção de Medicamentos -->
+				<div class="search-section">
+					<h2><span class="section-icon">💊</span> Busca de Medicamentos</h2>
+					<div class="search-container">
+						<input type="text" id="medSearch" placeholder="Digite o nome do medicamento (mínimo 2 caracteres)..." required>
+						<div id="medSuggestions" class="suggestions"></div>
+					</div>
+					<div id="medResults" class="results"></div>
+					<div id="medList" class="results"></div>
+				</div>
+
+				<!-- Seção de Exames -->
+				<div class="search-section">
+					<h2><span class="section-icon">🔬</span> Busca de Exames</h2>
+					<div class="search-container">
+						<input type="text" id="examSearch" placeholder="Digite o nome do exame (mínimo 2 caracteres)...">
+						<div id="examSuggestions" class="suggestions"></div>
+					</div>
+					<div id="examResults" class="results"></div>
+					<div id="examList" class="results"></div>
+				</div>
+
+				<!-- Nova Seção de CID-10 -->
+				<div class="search-section">
+					<h2><span class="section-icon">🏥</span> Busca de CID-10</h2>
+					<div class="search-container">
+						<input type="text" id="cidSearch" placeholder="Digite código ou descrição CID-10 (mínimo 2 caracteres)...">
+						<div id="cidSuggestions" class="suggestions"></div>
+					</div>
+					<div id="cidResults" class="results"></div>
+					<div id="cidList" class="results"></div>
+				</div>
+
+				<!-- Status da Consulta -->
+				<div class="search-section">
+					<h2><span class="section-icon">📌</span> Status da Consulta</h2>
+					<div class="search-container">
+						<select id="consultaStatus" class="form-control">
+							<option value="ativo" selected>Ativo</option>
+							<option value="cancelado">Cancelado</option>
+							<option value="concluido">Concluído</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="form-actions">
+					<button type="submit" class="btn btn-success" id="enviarFormulario">Enviar</button>
+					<button type="button" class="btn btn-secondary" id="limparFormulario">Limpar</button>
+				</div>
+			</form>
+		</div>
+
+		<script>
+			// Função para carregar o header
+			function incluirHeader() {
+				fetch('/header')
+				.then(response => {
+					if (!response.ok) {
+						throw new Error('Erro ao carregar o header.');
+					}
+						return response.text();
+					})
+				.then(data => {
+					document.getElementById('header-container').innerHTML = data;
+		
+					// Após carregar o header, configure o usuário logado
+					const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
+					if (usuarioLogado) {
+						const userName = JSON.parse(localStorage.getItem('userName'));
+						const firstName = userName.split(' ')[0];
+						document.getElementById('userGreeting').textContent = `Olá, ${firstName}`;
+					} else {
+						alert('Nenhum usuário logado.');
+						window.location.href = '/';
+					}
+				})
+				.catch(error => {
+					console.error('Erro ao incluir o header:', error);
+				});
+			}
+			// Chama a função ao carregar a página
+			document.addEventListener('DOMContentLoaded', incluirHeader);
+		
+			function logout() {
+				localStorage.removeItem('usuarioLogado');
+				localStorage.removeItem('userName');
+				localStorage.removeItem('userId');
+				window.location.href = '/'; // Redireciona para a página de login
+			}
+
+			// Configurações comuns
+			const config = {
+				minChars: 2,
+				debounceTime: 300
+			};
+
+			// Elementos de Medicamentos
+			const medSearch = document.getElementById('medSearch');
+			const medSuggestions = document.getElementById('medSuggestions');
+			const medResults = document.getElementById('medResults');
+			const medList = document.getElementById('medList');
+			let medTimeout;
+
+			// Elementos de Exames
+			const examSearch = document.getElementById('examSearch');
+			const examSuggestions = document.getElementById('examSuggestions');
+			const examResults = document.getElementById('examResults');
+			const examList = document.getElementById('examList');
+			let examTimeout;
+
+			// Elementos de CID-10
+			const cidSearch = document.getElementById('cidSearch');
+			const cidSuggestions = document.getElementById('cidSuggestions');
+			const cidResults = document.getElementById('cidResults');
+			const cidList = document.getElementById('cidList');
+			let cidTimeout;
+
+			// Eventos para Medicamentos
+			medSearch.addEventListener('input', function () {
+				clearTimeout(medTimeout);
+				const term = this.value.trim();
+
+				if (term.length === 0) {
+					medSuggestions.style.display = 'none';
+					medResults.innerHTML = ''; // Limpar resultados
+					return;
+				}
+
+				if (term.length >= config.minChars) {
+					medResults.innerHTML = '<div class="loading">Buscando medicamentos...</div>';
+					medTimeout = setTimeout(() => {
+							searchMedicamentos(term);
+					}, config.debounceTime);
+				}
+			});
+
+			// Eventos para Exames
+			examSearch.addEventListener('input', function () {
+				clearTimeout(examTimeout);
+				const term = this.value.trim();
+
+				if (term.length === 0) {
+					examSuggestions.style.display = 'none';
+					examResults.innerHTML = ''; // Limpar resultados
+					return;
+				}
+
+				if (term.length >= config.minChars) {
+					examResults.innerHTML = '<div class="loading">Buscando exames...</div>';
+					examTimeout = setTimeout(() => {
+							searchExames(term);
+					}, config.debounceTime);
+				}
+			});
+
+			// Eventos para CID-10
+			cidSearch.addEventListener('input', function () {
+				clearTimeout(cidTimeout);
+				const term = this.value.trim();
+
+				if (term.length === 0) {
+					cidSuggestions.style.display = 'none';
+					cidResults.innerHTML = ''; // Limpar resultados
+					return;
+				}
+
+				if (term.length >= config.minChars) {
+					cidResults.innerHTML = '<div class="loading">Buscando CID-10...</div>';
+					cidTimeout = setTimeout(() => {
+							searchCID10(term);
+					}, config.debounceTime);
+				}
+			});
+
+			// Função de busca para Medicamentos
+			function searchMedicamentos(term) {
+				fetch(`http://localhost:3000/medicamentos?s=${term}`)
+					.then(response => response.json())
+					.then(data => {
+						showMedSuggestions(data);
+						if (data.length === 0) {
+								medResults.innerHTML = '<div class="no-results">Nenhum medicamento encontrado</div>';
+						}
+					})
+					.catch(error => {
+						console.error('Erro na busca de medicamentos:', error);
+						medResults.innerHTML = '<div class="no-results">Erro ao buscar medicamentos</div>';
+					});
+			}
+
+			// Função de busca para Exames
+			function searchExames(term) {
+				fetch(`http://localhost:3000/exames?s=${term}`)
+					.then(response => response.json())
+					.then(data => {
+						showExamSuggestions(data);
+						if (data.length === 0) {
+								examResults.innerHTML = '<div class="no-results">Nenhum exame encontrado</div>';
+						}
+					})
+					.catch(error => {
+						console.error('Erro na busca de exames:', error);
+						examResults.innerHTML = '<div class="no-results">Erro ao buscar exames</div>';
+					});
+			}
+
+			// Função de busca para Cid10
+			function searchCID10(term) {
+				fetch(`http://localhost:3000/cid10?s=${term}`)
+					.then(response => response.json())
+					.then(data => {
+						showCIDSuggestions(data);
+						if (data.length === 0) {
+								cidResults.innerHTML = '<div class="no-results">Nenhum código CID-10 encontrado</div>';
+						}
+					})
+					.catch(error => {
+						console.error('Erro na busca de CID-10:', error);
+						cidResults.innerHTML = '<div class="no-results">Erro ao buscar CID-10</div>';
+					});
+			}
+
+			// Mostrar sugestões para Medicamentos
+			function showMedSuggestions(items) {
+				medSuggestions.innerHTML = '';
+				if (items.length === 0) {
+					medSuggestions.style.display = 'none';
+					return;
+				}
+				items.slice(0, 10).forEach(item => {
+					const suggestion = document.createElement('div');
+					suggestion.className = 'suggestion-item';
+					const displayText = `${item.nomeProduto || 'Sem nome'} - ${(item.empresaDetentoraRegistro || 'Fabricante não informado').split('-')[1]} - ${item.situacaoRegistro || 'Sem status'}`;
+					suggestion.textContent = displayText;
+					suggestion.addEventListener('click', () => {
+						medSearch.value = '';
+						medSuggestions.style.display = 'none';
+						addMedToList(item); // Adicionar à lista
+					});
+					medSuggestions.appendChild(suggestion);
+				});
+				medSuggestions.style.display = 'block';
+			}
+
+			// Mostrar sugestões para Exames
+			function showExamSuggestions(items) {
+				examSuggestions.innerHTML = '';
+				if (items.length === 0) {
+					examSuggestions.style.display = 'none';
+					return;
+				}
+				items.slice(0, 10).forEach(item => {
+					const suggestion = document.createElement('div');
+					suggestion.className = 'suggestion-item';
+					const displayText = `${item.nome || 'Sem nome'} - ${item.codigoTuss || 'Sem código'}`;
+					suggestion.textContent = displayText;
+					suggestion.addEventListener('click', () => {
+						examSearch.value = '';
+						examSuggestions.style.display = 'none';
+						addExamToList(item); // Adicionar à lista
+					});
+					examSuggestions.appendChild(suggestion);
+				});
+				examSuggestions.style.display = 'block';
+			}
+
+			// Mostrar sugestões para CID-10
+			function showCIDSuggestions(items) {
+				cidSuggestions.innerHTML = '';
+				if (items.length === 0) {
+					cidSuggestions.style.display = 'none';
+					return;
+				}
+				items.slice(0, 10).forEach(item => {
+					const suggestion = document.createElement('div');
+					suggestion.className = 'suggestion-item';
+					const displayText = `${item.cid10 || 'Sem código'} - ${item.descricao || 'Sem descrição'}`;
+					suggestion.textContent = displayText;
+					suggestion.addEventListener('click', () => {
+						cidSearch.value = '';
+						cidSuggestions.style.display = 'none';
+						addCIDToList(item); // Adicionar à lista
+					});
+					cidSuggestions.appendChild(suggestion);
+				});
+				cidSuggestions.style.display = 'block';
+			}
+
+			// Adicionar medicamento à lista com opção de remover
+			function addMedToList(item) {
+				const listItem = document.createElement('div');
+				listItem.className = 'result-item';
+				listItem.dataset.id = item._id;
+				listItem.innerHTML = `
+					<div class="result-item" style="position: relative;">
+						<button class="remove-btn" title="Remover item" style="position: absolute; top: 10px; right: 10px;">🗑️</button>
+						<div class="result-title">${item.tipoProduto} - ${item.nomeProduto || 'Sem nome'}</div>
+						<div class="result-details">
+							<strong>Status:</strong> ${item.situacaoRegistro}<br>
+							<strong>Categoria:</strong> ${item.categoriaRegulatoria}<br>
+							<strong>Empresa Detentora:</strong> ${(item.empresaDetentoraRegistro || 'Fabricante não informado').split('-')[1] || 'Não informado'}<br>
+							<strong>Princípio Ativo:</strong> ${item.principioAtivo || 'Não informado'}<br>
+							<strong>Registro:</strong> ${item.numeroRegistroProduto || 'Não informado'}<br>
+							<strong>Classe Terapêutica:</strong> ${item.classeTerapeutica || 'Não informada'}
+						</div>
+						<div class="med-options">
+							<label for="inicio-${item._id}">Início:</label>
+							<input type="date" id="inicio-${item._id}" class="form-control med-inicio" required>
+
+							<label for="dosagem-${item._id}">Dosagem:</label>
+							<input type="text" id="dosagem-${item._id}" class="form-control med-dosagem" placeholder="Ex.: 500mg" required>
+
+							<label for="periodicidade-tipo-${item._id}">Periodicidade:</label>
+							<select id="periodicidade-tipo-${item._id}" class="form-control med-periodicidade">
+								<option value="sobDemanda">Sob Demanda</option>
+								<option value="intervalo">Intervalo</option>
+								<option value="horarioFixo">Horário Fixo</option>
+							</select>
+
+							<div id="periodicidade-options-${item._id}" class="periodicidade-options">
+								<!-- Subopções serão adicionadas dinamicamente -->
+							</div>
+
+							<label for="usoContinuo-${item._id}">
+								<input type="checkbox" id="usoContinuo-${item._id}" class="form-check-input med-usoContinuo">
+								Uso Contínuo
+							</label>
+
+							<div id="duracaoDias-container-${item._id}">
+								<label for="duracaoDias-${item._id}">Duração (em dias):</label>
+								<input type="number" id="duracaoDias-${item._id}" class="form-control" min="1" placeholder="Ex.: 7">
+							</div>
+						</div>
+					</div>
+				`;
+				medSuggestions.style.display = 'none';
+				medResults.innerHTML = ''; // Limpar resultados
+				listItem.querySelector('.remove-btn').addEventListener('click', () => {
+					medList.removeChild(listItem);
+				});
+
+				// Adicionar evento para exibir subopções de periodicidade
+				const periodicidadeSelect = listItem.querySelector(`#periodicidade-tipo-${item._id}`);
+				const periodicidadeOptions = listItem.querySelector(`#periodicidade-options-${item._id}`);
+				periodicidadeSelect.addEventListener('change', () => {
+					const selectedValue = periodicidadeSelect.value;
+					periodicidadeOptions.innerHTML = ''; // Limpa as subopções
+
+					if (selectedValue === 'intervalo') {
+						periodicidadeOptions.innerHTML = `
+							<label for="intervalo-unidade-${item._id}">Unidade:</label>
+							<select id="intervalo-unidade-${item._id}" class="form-control">
+								<option value="Horas">Horas</option>
+								<option value="Dias">Dias</option>
+								<option value="Semanas">Semanas</option>
+								<option value="Meses">Meses</option>
+							</select>
+							<label for="intervalo-valor-${item._id}">Valor:</label>
+							<input type="number" id="intervalo-valor-${item._id}" class="form-control" min="1" placeholder="Ex.: 8">
+						`;
+					} else if (selectedValue === 'horarioFixo') {
+						periodicidadeOptions.innerHTML = `
+							<label for="horariosFixos-${item._id}">Horários Fixos:</label>
+							<input type="text" id="horariosFixos-${item._id}" class="form-control" placeholder="Ex.: 08:00, 14:00">
+						`;
+					}
+				});
+
+				const usoContinuoCheckbox = listItem.querySelector(`#usoContinuo-${item._id}`);
+				const duracaoDiasContainer = listItem.querySelector(`#duracaoDias-container-${item._id}`);
+
+				usoContinuoCheckbox.addEventListener('change', () => {
+					if (usoContinuoCheckbox.checked) {
+						duracaoDiasContainer.style.display = 'none';
+					} else {
+						duracaoDiasContainer.style.display = 'block';
+					}
+				});
+
+				medList.appendChild(listItem);
+			}
+
+			// Adicionar medicamento na edicao
+			function addMedToListEdit(item) {
+				const listItem = document.createElement('div');
+				listItem.className = 'result-item';
+				listItem.dataset.id = item.medicamentoDetalhes._id;
+				listItem.innerHTML = `
+					<div class="result-item" style="position: relative;">
+						<button class="remove-btn" title="Remover item" style="position: absolute; top: 10px; right: 10px;">🗑️</button>
+						<div class="result-title">${item.medicamentoDetalhes?.tipoProduto || 'Medicamento'} - ${item.medicamentoDetalhes?.nomeProduto || 'Sem nome'}</div>
+						<div class="result-details">
+							<strong>Status:</strong> ${item.medicamentoDetalhes?.situacaoRegistro || 'Não informado'}<br>
+							<strong>Categoria:</strong> ${item.medicamentoDetalhes?.categoriaRegulatoria || 'Não informada'}<br>
+							<strong>Empresa Detentora:</strong> ${(item.medicamentoDetalhes?.empresaDetentoraRegistro || 'Fabricante não informado').split('-')[1] || 'Não informado'}<br>
+							<strong>Princípio Ativo:</strong> ${item.medicamentoDetalhes?.principioAtivo || 'Não informado'}<br>
+							<strong>Registro:</strong> ${item.medicamentoDetalhes?.numeroRegistroProduto || 'Não informado'}<br>
+							<strong>Classe Terapêutica:</strong> ${item.medicamentoDetalhes?.classeTerapeutica || 'Não informada'}
+						</div>
+						<div class="med-options">
+							<label for="inicio-${listItem.dataset.id}">Início:</label>
+							<input type="date" id="inicio-${listItem.dataset.id}" class="form-control med-inicio" value="${item.inicio?.split('T')[0] || ''}" required>
+
+							<label for="dosagem-${listItem.dataset.id}">Dosagem:</label>
+							<input type="text" id="dosagem-${listItem.dataset.id}" class="form-control med-dosagem" value="${item.dosagem || ''}" placeholder="Ex.: 500mg" required>
+
+							<label for="periodicidade-tipo-${listItem.dataset.id}">Periodicidade:</label>
+							<select id="periodicidade-tipo-${listItem.dataset.id}" class="form-control med-periodicidade">
+								<option value="sobDemanda" ${item.periodicidade?.tipo === 'sobDemanda' ? 'selected' : ''}>Sob Demanda</option>
+								<option value="intervalo" ${item.periodicidade?.tipo === 'intervalo' ? 'selected' : ''}>Intervalo</option>
+								<option value="horarioFixo" ${item.periodicidade?.tipo === 'horarioFixo' ? 'selected' : ''}>Horário Fixo</option>
+							</select>
+
+							<div id="periodicidade-options-${listItem.dataset.id}" class="periodicidade-options">
+								<!-- Subopções serão adicionadas dinamicamente -->
+							</div>
+
+							<label for="usoContinuo-${listItem.dataset.id}">
+								<input type="checkbox" id="usoContinuo-${listItem.dataset.id}" class="form-check-input med-usoContinuo" ${item.usoContinuo ? 'checked' : ''}>
+								Uso Contínuo
+							</label>
+
+							<div id="duracaoDias-container-${listItem.dataset.id}" style="display: ${item.usoContinuo ? 'none' : 'block'};">
+								<label for="duracaoDias-${listItem.dataset.id}">Duração (em dias):</label>
+								<input type="number" id="duracaoDias-${listItem.dataset.id}" class="form-control" value="${item.periodicidade?.duracaoDias || ''}" min="1" placeholder="Ex.: 7">
+							</div>
+						</div>
+					</div>
+				`;
+				medSuggestions.style.display = 'none';
+				medResults.innerHTML = ''; // Limpar resultados
+				listItem.querySelector('.remove-btn').addEventListener('click', () => {
+					medList.removeChild(listItem);
+				});
+
+				// Adicionar evento para exibir subopções de periodicidade
+				const periodicidadeSelect = listItem.querySelector(`#periodicidade-tipo-${listItem.dataset.id}`);
+				const periodicidadeOptions = listItem.querySelector(`#periodicidade-options-${listItem.dataset.id}`);
+				periodicidadeSelect.addEventListener('change', () => {
+					const selectedValue = periodicidadeSelect.value;
+					periodicidadeOptions.innerHTML = ''; // Limpa as subopções
+
+					if (selectedValue === 'intervalo') {
+						periodicidadeOptions.innerHTML = `
+							<label for="intervalo-unidade-${listItem.dataset.id}">Unidade:</label>
+							<select id="intervalo-unidade-${listItem.dataset.id}" class="form-control">
+								<option value="Horas" ${item.periodicidade?.unidadeIntervalo === 'Horas' ? 'selected' : ''}>Horas</option>
+								<option value="Dias" ${item.periodicidade?.unidadeIntervalo === 'Dias' ? 'selected' : ''}>Dias</option>
+								<option value="Semanas" ${item.periodicidade?.unidadeIntervalo === 'Semanas' ? 'selected' : ''}>Semanas</option>
+								<option value="Meses" ${item.periodicidade?.unidadeIntervalo === 'Meses' ? 'selected' : ''}>Meses</option>
+							</select>
+							<label for="intervalo-valor-${listItem.dataset.id}">Valor:</label>
+							<input type="number" id="intervalo-valor-${listItem.dataset.id}" class="form-control" value="${item.periodicidade?.valorIntervalo || ''}" min="1" placeholder="Ex.: 8">
+						`;
+					} else if (selectedValue === 'Horário Fixo') {
+						periodicidadeOptions.innerHTML = `
+							<label for="horariosFixos-${listItem.dataset.id}">Horários Fixos:</label>
+							<input type="text" id="horariosFixos-${listItem.dataset.id}" class="form-control" value="${item.periodicidade?.horariosFixos?.join(', ') || ''}" placeholder="Ex.: 08:00, 14:00">
+						`;
+					}
+				});
+
+				// Disparar o evento de mudança para preencher as subopções
+				periodicidadeSelect.dispatchEvent(new Event('change'));
+
+				const usoContinuoCheckbox = listItem.querySelector(`#usoContinuo-${listItem.dataset.id}`);
+				const duracaoDiasContainer = listItem.querySelector(`#duracaoDias-container-${listItem.dataset.id}`);
+
+				usoContinuoCheckbox.addEventListener('change', () => {
+					if (usoContinuoCheckbox.checked) {
+						duracaoDiasContainer.style.display = 'none';
+					} else {
+						duracaoDiasContainer.style.display = 'block';
+					}
+				});
+
+				medList.appendChild(listItem);
+			}
+
+			// Adicionar exame à lista com opção de remover
+			function addExamToList(item) {
+				const listItem = document.createElement('div');
+				listItem.className = 'result-item';
+				listItem.dataset.id = item._id;
+				listItem.innerHTML = `
+					<div class="result-item" style="position: relative;">
+						<button class="remove-btn" title="Remover item" style="position: absolute; top: 10px; right: 10px;">🗑️</button>
+						<div class="result-title">${item.nome || 'Sem nome'} - Código: ${item.codigoTuss || 'Não informado'}</div>
+						<div class="result-details">
+							<strong>Categoria:</strong> ${item.categoria || 'Não informada'}<br>
+							<strong>Descrição:</strong> ${item.descricao || 'Não disponível'}
+						</div>
+						<div class="exam-options">
+							<label for="data-${item._id}">Data:</label>
+							<input type="date" id="data-${item._id}" class="form-control exam-data" required>
+
+							<label for="resultado-${item._id}">Resultado:</label>
+							<input type="text" id="resultado-${item._id}" class="form-control exam-resultado" placeholder="Digite o resultado" required>
+						</div>
+					</div>
+				`;
+				examSuggestions.style.display = 'none';
+				examResults.innerHTML = ''; // Limpar resultados
+				listItem.querySelector('.remove-btn').addEventListener('click', () => {
+					examList.removeChild(listItem);
+				});
+				examList.appendChild(listItem);
+			}
+
+			// Adicionar exame na edicao
+			function addExamToListEdit(item) {
+				const listItem = document.createElement('div');
+				listItem.className = 'result-item';
+				listItem.dataset.id = item.exameDetalhes._id;
+				listItem.innerHTML = `
+					<div class="result-item" style="position: relative;">
+						<button class="remove-btn" title="Remover item" style="position: absolute; top: 10px; right: 10px;">🗑️</button>
+						<div class="result-title">${item.exameDetalhes?.nome || 'Sem nome'} - Código: ${item.exameDetalhes?.codigoTuss || 'Não informado'}</div>
+						<div class="result-details">
+							<strong>Categoria:</strong> ${item.categoria || 'Não informada'}<br>
+							<strong>Descrição:</strong> ${item.descricao || 'Não disponível'}
+						</div>
+						<div class="exam-options">
+							<label for="resultado-${listItem.dataset.id}">Resultado:</label>
+							<input type="text" id="resultado-${listItem.dataset.id}" class="form-control exam-resultado" value="${item.resultado || ''}" placeholder="Digite o resultado" required>
+							<label for="data-${listItem.dataset.id}">Data:</label>
+							<input type="date" id="data-${listItem.dataset.id}" class="form-control exam-data" value="${item.data?.split('T')[0] || ''}" required>
+						</div>
+					</div>
+				`;
+				examSuggestions.style.display = 'none';
+				examResults.innerHTML = ''; // Limpar resultados
+				listItem.querySelector('.remove-btn').addEventListener('click', () => {
+					examList.removeChild(listItem);
+				});
+				examList.appendChild(listItem);
+			}
+
+			// Adicionar CID-10 à lista com opção de remover
+			function addCIDToList(item) {
+				const listItem = document.createElement('div');
+				listItem.className = 'result-item';
+				listItem.dataset.id = item._id;
+				listItem.innerHTML = `
+					<div class="result-item" style="position: relative;">
+						<button class="remove-btn" title="Remover item" style="position: absolute; top: 10px; right: 10px;">🗑️</button>
+						<div class="result-title">${item.cid10 || 'Sem código'} - ${item.descricao || 'Sem descrição'}</div>
+						<div class="result-details">
+							<strong>Código Completo:</strong> ${item.cid10 || 'Não informado'}<br>
+							<strong>Descrição Completa:</strong> ${item.descricao || 'Não disponível'}
+						</div>
+						<div class="cid-options">
+							<label for="dataDiagnostico-${item._id}">Data de Diagnóstico:</label>
+							<input type="date" id="dataDiagnostico-${item._id}" class="form-control cid-dataDiagnostico" required>
+
+							<label for="dataFinalizacao-${item._id}">Data de Finalização:</label>
+							<input type="date" id="dataFinalizacao-${item._id}" class="form-control cid-dataFinalizacao">
+						</div>
+					</div>
+				`;
+				cidSuggestions.style.display = 'none';
+				cidResults.innerHTML = ''; // Limpar resultados
+				listItem.querySelector('.remove-btn').addEventListener('click', () => {
+						cidList.removeChild(listItem);
+				});
+				cidList.appendChild(listItem);
+			}
+
+			// Adicionar CID-10 na edicao
+			function addCIDToListEdit(item) {
+				const listItem = document.createElement('div');
+				listItem.className = 'result-item';
+				listItem.dataset.id = item.cid10Detalhes._id;
+				listItem.innerHTML = `
+					<div class="result-item" style="position: relative;">
+						<button class="remove-btn" title="Remover item" style="position: absolute; top: 10px; right: 10px;">🗑️</button>
+						<div class="result-title">${item.cid10Detalhes?.cid10 || 'Sem código'} - ${item.cid10Detalhes?.descricao || 'Sem descrição'}</div>
+						<div class="result-details">
+							<strong>Código Completo:</strong> ${item.cid10Detalhes?.cid10 || 'Não informado'}<br>
+							<strong>Descrição Completa:</strong> ${item.cid10Detalhes?.descricao || 'Não disponível'}
+						</div>
+						<div class="cid-options">
+							<label for="dataDiagnostico-${listItem.dataset.id}">Data de Diagnóstico:</label>
+							<input type="date" id="dataDiagnostico-${listItem.dataset.id}" class="form-control cid-dataDiagnostico" value="${item.dataDiagnostico?.split('T')[0] || ''}" required>
+
+							<label for="dataFinalizacao-${listItem.dataset.id}">Data de Finalização:</label>
+							<input type="date" id="dataFinalizacao-${listItem.dataset.id}" class="form-control cid-dataFinalizacao" value="${item.dataFinalizacao?.split('T')[0] || ''}">
+						</div>
+					</div>
+				`;
+				cidSuggestions.style.display = 'none';
+				cidResults.innerHTML = ''; // Limpar resultados
+				listItem.querySelector('.remove-btn').addEventListener('click', () => {
+					cidList.removeChild(listItem);
+				});
+				cidList.appendChild(listItem);
+			}
+
+			// Mostrar detalhes do Medicamento
+			function showMedDetails(item) {
+				let details = `
+					<div class="result-item">
+						<div class="result-title">${item.nomeComercial || 'Sem nome'} - ${item.fabricante || 'Fabricante não informado'}</div>
+						<div class="result-details">
+							<strong>Princípio Ativo:</strong> ${item.principioAtivo || 'Não informado'}<br>
+							<strong>Registro Anvisa:</strong> ${item.registroAnvisa || 'Não informado'}<br>
+							<strong>Classe Terapêutica:</strong> ${item.classeTerapeutica || 'Não informada'}
+						</div>
+					</div>
+				`;
+				medResults.innerHTML = details;
+			}
+
+			// Mostrar detalhes do Exame
+			function showExamDetails(item) {
+				let details = `
+					<div class="result-item">
+						<div class="result-title">${item.nome || 'Sem nome'} - Código: ${item.codigoTuss || 'Não informado'}</div>
+						<div class="result-details">
+							<strong>Categoria:</strong> ${item.categoria || 'Não informada'}<br>
+							<strong>Descrição:</strong> ${item.descricao || 'Não disponível'}
+						</div>
+					</div>
+				`;
+				examResults.innerHTML = details;
+			}
+
+			// Mostrar detalhes do CID-10
+			function showCIDDetails(item) {
+				let details = `
+					<div class="result-item">
+						<div class="result-title">${item.cid10 || 'Sem código'} - ${item.descricao || 'Sem descrição'}</div>
+						<div class="result-details">
+							<strong>Código Completo:</strong> ${item.cid10 || 'Não informado'}<br>
+							<strong>Descrição Completa:</strong> ${item.descricao || 'Não disponível'}
+						</div>
+					</div>
+				`;
+				cidResults.innerHTML = details;
+			}
+
+			// Fechar sugestões ao clicar fora
+			document.addEventListener('click', function(e) {
+				if (!e.target.closest('.suggestions') && !e.target.closest('input[type="text"]')) {
+					medSuggestions.style.display = 'none';
+					examSuggestions.style.display = 'none';
+					cidSuggestions.style.display = 'none';
+				}
+			});
+
+			// Função para limpar o formulário
+			document.getElementById('limparFormulario').addEventListener('click', function () {
+				// Limpar os campos de entrada
+				document.getElementById('consultaData').value = '';
+				document.getElementById('consultaMedico').value = '';
+				document.getElementById('medSearch').value = '';
+				document.getElementById('examSearch').value = '';
+				document.getElementById('cidSearch').value = '';
+
+				// Limpar as listas de medicamentos, exames e CID-10
+				document.getElementById('medList').innerHTML = '';
+				document.getElementById('examList').innerHTML = '';
+				document.getElementById('cidList').innerHTML = '';
+
+				// Limpar os resultados de busca
+				document.getElementById('medResults').innerHTML = '';
+				document.getElementById('examResults').innerHTML = '';
+				document.getElementById('cidResults').innerHTML = '';
+			});
+
+			document.getElementById('enviarFormulario').addEventListener('click', function (e) {
+				e.preventDefault();
+
+				// Verifica se é uma edição
+				const consultaEditada = JSON.parse(localStorage.getItem('consultaEditada'));
+				if (consultaEditada) {
+					atualizarConsulta(consultaEditada._id); // Chama a função de atualização
+				} else {
+					cadastrarConsulta(); // Chama a função de cadastro
+				}
+			});
+
+			function cadastrarConsulta() {
+				// Capturar os valores dos campos
+				const usuarioId = JSON.parse(localStorage.getItem('userId'));
+				const dataConsulta = document.getElementById('consultaData').value;
+				const nomeMedico = document.getElementById('consultaMedico').value;
+				const descricao = document.getElementById('consultaDescricao').value;
+				const status = document.getElementById('consultaStatus').value;
+
+				// Capturar os medicamentos, exames e CID-10 adicionados
+				const medicamentos = Array.from(document.getElementById('medList').children).map(item => {
+					const periodicidadeTipoElement = item.querySelector('.med-periodicidade');
+					const periodicidadeTipo = periodicidadeTipoElement ? periodicidadeTipoElement.value : null;
+					let periodicidade = { tipo: periodicidadeTipo };
+
+					if (periodicidadeTipo === 'intervalo') {
+						const unidadeIntervaloElement = item.querySelector(`#intervalo-unidade-${item.dataset.id}`);
+						const valorIntervaloElement = item.querySelector(`#intervalo-valor-${item.dataset.id}`);
+						periodicidade.unidadeIntervalo = unidadeIntervaloElement ? unidadeIntervaloElement.value : null;
+						periodicidade.valorIntervalo = valorIntervaloElement ? valorIntervaloElement.value : null;
+					} else if (periodicidadeTipo === 'horarioFixo') {
+						const horariosFixosElement = item.querySelector(`#horariosFixos-${item.dataset.id}`);
+						periodicidade.horariosFixos = horariosFixosElement ? horariosFixosElement.value.split(',').map(h => h.trim()) : [];
+					} else {
+						// Caso seja "sobDemanda" ou outro tipo, limpa os campos relacionados
+						periodicidade.unidadeIntervalo = null;
+						periodicidade.valorIntervalo = null;
+						periodicidade.horariosFixos = null;
+					}
+
+					const usoContinuoElement = item.querySelector('.med-usoContinuo');
+					const usoContinuo = usoContinuoElement ? usoContinuoElement.checked : false;
+					if (!usoContinuo) {
+						const duracaoDiasElement = item.querySelector(`#duracaoDias-${item.dataset.id}`);
+						periodicidade.duracaoDias = duracaoDiasElement ? duracaoDiasElement.value : null;
+					} else {
+						periodicidade.duracaoDias = null; // Garante que duracaoDias seja nulo se uso contínuo estiver marcado
+					}
+
+					console.log('Periodicidade capturada:', periodicidade);
+
+					return {
+						medicamentoId: item.dataset.id,
+						inicio: item.querySelector('.med-inicio')?.value || '',
+						dosagem: item.querySelector('.med-dosagem')?.value || '',
+						periodicidade,
+						usoContinuo
+					};
+				});
+
+				const exames = Array.from(document.getElementById('examList').children).map(item => ({
+					exameId: item.dataset.id,
+					data: item.querySelector('.exam-data').value,
+					resultado: item.querySelector('.exam-resultado').value
+				}));
+
+				const cid10 = Array.from(document.getElementById('cidList').children).map(item => ({
+					cid10Id: item.dataset.id,
+					dataDiagnostico: item.querySelector('.cid-dataDiagnostico').value,
+					dataFinalizacao: item.querySelector('.cid-dataFinalizacao').value
+				}));
+
+				// Criar o objeto com os dados da consulta
+				const consultaData = {
+					usuarioId,
+					dataConsulta,
+					nomeMedico,
+					descricao,
+					status,
+					medicamentos,
+					exames,
+					cid10,
+				};
+
+				console.log('Dados da consulta:', consultaData);
+
+				// Enviar os dados para o backend
+				fetch('/consultaUsuario/cadastrarConsulta', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(consultaData),
+				})
+				.then(data => {
+					alert('Consulta cadastrada com sucesso!');
+					window.location.href = '/home';
+				})
+				.catch(error => {
+					console.error('Erro ao salvar a consulta:', error);
+					alert('Erro ao salvar a consulta.');
+				});
+			}
+
+			document.addEventListener('DOMContentLoaded', () => {
+				const consultaEditada = JSON.parse(localStorage.getItem('consultaEditada'));
+				if (consultaEditada) {
+					document.getElementById('enviarFormulario').textContent = 'Atualizar';
+
+					// Preenche os campos principais
+					document.getElementById('consultaDescricao').value = consultaEditada.descricao;
+					document.getElementById('consultaData').value = new Date(consultaEditada.dataConsulta).toISOString().split('T')[0];
+					document.getElementById('consultaMedico').value = consultaEditada.nomeMedico;
+
+					// Preenche o status da consulta
+					document.getElementById('consultaStatus').value = consultaEditada.status || 'ativo';
+
+					// Preenche medicamentos
+					if (consultaEditada.medicamentos) {
+						consultaEditada.medicamentos.forEach(med => addMedToListEdit(med));
+					}
+
+					// Preenche exames
+					if (consultaEditada.exames) {
+						consultaEditada.exames.forEach(exame => addExamToListEdit(exame));
+					}
+
+					// Preenche CID-10
+					if (consultaEditada.cid10) {
+						consultaEditada.cid10.forEach(cid => addCIDToListEdit(cid));
+					}
+					console.log('Consulta editada:', consultaEditada);
+				}
+			});
+
+			function atualizarConsulta(id) {
+				const consultaEditada = JSON.parse(localStorage.getItem('consultaEditada'));
+				const usuarioId = JSON.parse(localStorage.getItem('userId'));
+				const dataConsulta = document.getElementById('consultaData').value;
+				const nomeMedico = document.getElementById('consultaMedico').value;
+				const descricao = document.getElementById('consultaDescricao').value;
+				const status = document.getElementById('consultaStatus').value;
+
+				// Capturar os medicamentos, exames e CID-10 adicionados
+				const medicamentos = Array.from(document.getElementById('medList').children).map(item => {
+					console.log('ID do medicamento:', item.dataset.id);
+					console.log('Item do medicamento:', item);
+					const periodicidadeTipoElement = item.querySelector('.med-periodicidade');
+					const periodicidadeTipo = periodicidadeTipoElement ? periodicidadeTipoElement.value : null;
+					let periodicidade = { tipo: periodicidadeTipo };
+
+					if (periodicidadeTipo === 'intervalo') {
+						const unidadeIntervaloElement = item.querySelector(`#intervalo-unidade-${item.dataset.id}`);
+						const valorIntervaloElement = item.querySelector(`#intervalo-valor-${item.dataset.id}`);
+						periodicidade.unidadeIntervalo = unidadeIntervaloElement ? unidadeIntervaloElement.value : null;
+						periodicidade.valorIntervalo = valorIntervaloElement ? valorIntervaloElement.value : null;
+					} else if (periodicidadeTipo === 'horarioFixo') {
+						const horariosFixosElement = item.querySelector(`#horariosFixos-${item.dataset.id}`);
+						periodicidade.horariosFixos = horariosFixosElement ? horariosFixosElement.value.split(',').map(h => h.trim()) : [];
+					} else {
+						// Caso seja "sobDemanda" ou outro tipo, limpa os campos relacionados
+						periodicidade.unidadeIntervalo = null;
+						periodicidade.valorIntervalo = null;
+						periodicidade.horariosFixos = null;
+					}
+
+					const usoContinuoElement = item.querySelector('.med-usoContinuo');
+					const usoContinuo = usoContinuoElement ? usoContinuoElement.checked : false;
+					if (!usoContinuo) {
+						const duracaoDiasElement = item.querySelector(`#duracaoDias-${item.dataset.id}`);
+						periodicidade.duracaoDias = duracaoDiasElement ? duracaoDiasElement.value : null;
+					} else {
+						periodicidade.duracaoDias = null; // Garante que duracaoDias seja nulo se uso contínuo estiver marcado
+					}
+
+					return {
+						medicamentoId: item.dataset.id,
+						consultaId: consultaEditada._id,
+						inicio: item.querySelector('.med-inicio')?.value || '',
+						dosagem: item.querySelector('.med-dosagem')?.value || '',
+						periodicidade,
+						usoContinuo
+					};
+				});
+
+				const exames = Array.from(document.getElementById('examList').children).map(item => ({
+					exameId: item.dataset.id,
+					consultaId: consultaEditada._id,
+					data: item.querySelector('.exam-data').value,
+					resultado: item.querySelector('.exam-resultado').value
+				}));
+
+				const cid10 = Array.from(document.getElementById('cidList').children).map(item => ({
+					cid10Id: item.dataset.id,
+					consultaId: consultaEditada._id,
+					dataDiagnostico: item.querySelector('.cid-dataDiagnostico').value,
+					dataFinalizacao: item.querySelector('.cid-dataFinalizacao').value
+				}));
+
+				// Criar o objeto com os dados da consulta
+				const consultaData = {
+					_id: consultaEditada._id,
+					usuarioId,
+					dataConsulta,
+					nomeMedico,
+					descricao,
+					status,
+					medicamentos,
+					exames,
+					cid10,
+				};
+
+				console.log('Dados da consulta atualizada:', consultaData);
+
+				// Envia os dados atualizados para o servidor
+				fetch(`http://localhost:3000/consultaUsuario/${id}`, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(consultaData),
+				})
+				.then(() => {
+					alert('Consulta atualizada com sucesso!');
+					// Limpa o localStorage e redireciona para a página de consultas
+					localStorage.removeItem('consultaEditada');
+					window.location.href = '/home';
+				})
+				.catch(error => {
+					console.error('Erro ao atualizar consulta:', error);
+					alert('Erro ao atualizar consulta.');
+				});
+			}
+		</script>
+	</body>
+</html>
