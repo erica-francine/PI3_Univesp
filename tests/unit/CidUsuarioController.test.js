@@ -1,6 +1,6 @@
 const request = require('supertest');
 const express = require('express');
-const CidUsuarioController = require('../../api/controllers/CidUSuarioController');
+const CidUsuarioController = require('../../api/controllers/CidUsuarioController');
 const CidUsuario = require('../../api/models/CidUsuario');
 const Cid10 = require('../../api/models/Cid10');
 

@@ -14,6 +14,10 @@ const ConsultaUsuarioSchema = new mongoose.Schema({
         type: String,
         required: false // Descrição opcional da consulta
     },
+    nomeMedico: {
+        type: String,
+        required: false // Nome do médico opcional
+    },
     exames: [
         {
             exameUsuarioId: {

@@ -17,12 +17,12 @@ const MedicamentoUsuarioSchema = new mongoose.Schema({
     },
     dosagem: {
         type: String,
-        required: true
+        required: false
     },
     periodicidade: {
         tipo: {
             type: String,
-            enum: ['Intervalo', 'Horário fixo', 'Sob demanda'],
+            enum: ['intervalo', 'horarioFixo', 'sobDemanda'],
             required: true
         },
         unidadeIntervalo: {

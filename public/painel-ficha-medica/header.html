@@ -1,27 +1,25 @@
+
 <header class="system-header">
     <div class="header-container">
-        <!-- Logo -->
-        <div class="logo-container">
-            <a href="/" class="logo-link">
-                <span class="logo-icon">🏥</span>
-                <span class="logo-text">Sistema de Saúde</span>
-            </a>
-        </div>
-        
-        <!-- Menu Principal -->
-        <nav class="main-nav">
-            <ul class="nav-list">
-                <li class="nav-item"><a href="/medicamentos" class="nav-link">💊 Medicamentos</a></li>
-                <li class="nav-item"><a href="/exames" class="nav-link">🔬 Exames</a></li>
-                <li class="nav-item"><a href="/cid10" class="nav-link">📋 CID-10</a></li>
-                <li class="nav-item"><a href="/importar" class="nav-link">🔄 Importar Dados</a></li>
-            </ul>
-        </nav>
-        
-        <!-- Área do Usuário -->
-        <div class="user-area" id="userArea">
-            <div class="user-greeting" id="userGreeting"></div>
-            <button class="auth-btn" id="authButton">🔑 Login</button>
-        </div>
+      <div class="logo-container">
+        <a href="/home" class="logo-link">
+          <span class="logo-icon">🏥</span>
+          <span class="logo-text">Sistema de Saúde</span>
+        </a>
+      </div>
+      <nav class="main-nav">
+        <ul class="nav-list">
+            <li class="nav-item"><a href="/home" onclick="localStorage.removeItem('consultaEditada')" class="nav-link">📋 Consultas</a></li>
+            <li class="nav-item"><a href="/medicamentos" class="nav-link">💊 Medicamentos</a></li>
+            <li class="nav-item"><a href="/exames" class="nav-link">🔬 Exames</a></li>
+            <li class="nav-item"><a href="/cid10" class="nav-link">📋 CID-10</a></li>
+        </ul>
+      </nav>
+
+      <!-- Área do Usuário -->
+      <div class="user-area" id="userArea">
+          <div class="auth-btn user-greeting" id="userGreeting" onclick="window.location.href='/perfil'"></div>
+          <button class="btn btn-danger" onclick="logout()">Sair</button>
+      </div>
     </div>
 </header>

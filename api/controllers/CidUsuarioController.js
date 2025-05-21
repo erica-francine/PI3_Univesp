@@ -134,7 +134,35 @@ const CidUsuarioController = {
             console.error('Erro ao excluir CID do usuário:', error);
             res.status(500).json({ message: 'Erro interno no servidor.' });
         }
-    }
+    },
+
+    // Função para buscar CID-10 por ID da consulta
+    async getCidByConsultaId(req, res) {
+        try {
+            // Busca os cid10 associados à consulta
+            const cid10Usuario = await CidUsuario.find({ consultaId: req.params.consultaId });
+    
+            if (!cid10Usuario || cid10Usuario.length === 0) {
+                return res.status(404).json({ message: 'Nenhum CID-10 encontrado para esta consulta.' });
+            }
+    
+            // Busca os detalhes de cada cid10
+            const cid10Detalhados = await Promise.all(
+                cid10Usuario.map(async (cid10Usuario) => {
+                    const cid10 = await Cid10.findById(cid10Usuario.cid10Id);
+                    return {
+                        ...cid10Usuario.toObject(),
+                        cid10Detalhes: cid10 || null, // Inclui os detalhes do cid10 ou null se não encontrado
+                    };
+                })
+            );
+    
+            res.status(200).json(cid10Detalhados);
+        } catch (error) {
+            console.error('Erro ao buscar CID-10:', error);
+            res.status(500).json({ message: 'Erro ao buscar CID-10.' });
+        }
+    },
 };
 
 module.exports = CidUsuarioController;

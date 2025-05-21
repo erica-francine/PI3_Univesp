@@ -16,6 +16,7 @@ const MedicamentoController = {
             }
 
             const medicamento = await Medicamento.findById(medicamentoId);
+            
             if (!medicamento) {
                 if (res) {
                     return res.status(404).json({ message: 'Medicamento não encontrado.' });
@@ -90,7 +91,6 @@ const MedicamentoController = {
         }
     },
 
-
     // Função para excluir um medicamento
     async excluirMedicamentoUsuario(req, res) {
         try {
@@ -108,7 +108,33 @@ const MedicamentoController = {
         }
     },
 
+    // Função para buscar medicamento por ID da consulta
+    async getMedicamentosByConsultaId(req, res) {
+        try {
+            // Busca os medicamentos associados à consulta
+            const medicamentosUsuario = await MedicamentoUsuario.find({ consultaId: req.params.consultaId });
     
+            if (!medicamentosUsuario || medicamentosUsuario.length === 0) {
+                return res.status(404).json({ message: 'Nenhum medicamento encontrado para esta consulta.' });
+            }
+    
+            // Busca os detalhes de cada medicamento
+            const medicamentosDetalhados = await Promise.all(
+                medicamentosUsuario.map(async (medicamentoUsuario) => {
+                    const medicamento = await Medicamento.findById(medicamentoUsuario.medicamentoId);
+                    return {
+                        ...medicamentoUsuario.toObject(),
+                        medicamentoDetalhes: medicamento || null, // Inclui os detalhes do medicamento ou null se não encontrado
+                    };
+                })
+            );
+    
+            res.status(200).json(medicamentosDetalhados);
+        } catch (error) {
+            console.error('Erro ao buscar medicamentos:', error);
+            res.status(500).json({ message: 'Erro ao buscar medicamentos.' });
+        }
+    },
 };
 
 module.exports = MedicamentoController;

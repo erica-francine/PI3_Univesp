@@ -17,6 +17,7 @@ const Medicamento = mongoose.model('Medicamento', medicamentoSchema);
 mongoose.connect(process.env.MONGO_URI, {
     /* useNewUrlParser: true, */
     /* useUnifiedTopology: true, */
+    dbName: 'fichaMedica', // Nome do banco de dados
     maxPoolSize: 10
 });
 

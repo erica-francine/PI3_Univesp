@@ -119,7 +119,35 @@ const ExameUsuarioController = {
             console.error('Erro ao excluir exame do usuário:', error);
             res.status(500).json({ message: 'Erro interno no servidor.' });
         }
-    }
+    },
+    
+    // Função para buscar exame por ID da consulta
+    async getExamesByConsultaId(req, res) {
+        try {
+            // Busca os exames associados à consulta
+            const examesUsuario = await ExameUsuario.find({ consultaId: req.params.consultaId });
+    
+            if (!examesUsuario || examesUsuario.length === 0) {
+                return res.status(404).json({ message: 'Nenhum exame encontrado para esta consulta.' });
+            }
+    
+            // Busca os detalhes de cada exame
+            const examesDetalhados = await Promise.all(
+                examesUsuario.map(async (exameUsuario) => {
+                    const exame = await Exame.findById(exameUsuario.exameId);
+                    return {
+                        ...exameUsuario.toObject(),
+                        exameDetalhes: exame || null, // Inclui os detalhes do exame ou null se não encontrado
+                    };
+                })
+            );
+    
+            res.status(200).json(examesDetalhados);
+        } catch (error) {
+            console.error('Erro ao buscar exames:', error);
+            res.status(500).json({ message: 'Erro ao buscar exames.' });
+        }
+    },
 };
 
 module.exports = ExameUsuarioController;

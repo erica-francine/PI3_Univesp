@@ -153,3 +153,48 @@ input {
     white-space: nowrap;
     border-width: 0;
 }
+
+/* Estilo para a tabela como grid */
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 colunas */
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.styled-table thead {
+    display: contents; /* Permite que o cabeçalho seja parte da grid */
+}
+
+.styled-table th {
+    background-color: #007bff;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: bold;
+    border: 1px solid #dee2e6;
+}
+
+.styled-table tbody {
+    display: contents; /* Permite que o corpo seja parte da grid */
+}
+
+.styled-table td {
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.styled-table tr {
+    display: contents; /* Cada linha é parte da grid */
+}
+
+.styled-table tr:nth-child(even) td {
+    background-color: #f2f2f2; /* Cor de fundo alternada */
+}
+
+.styled-table tr:hover td {
+    background-color: #e9ecef; /* Cor de fundo ao passar o mouse */
+}

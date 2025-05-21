@@ -15,7 +15,7 @@ jest.mock('../../api/models/CidUsuario');
 // Mock das controllers filhas
 const MedicamentoUsuarioController = require('../../api/controllers/MedicamentoUsuarioController');
 const ExameUsuarioController = require('../../api/controllers/ExameUsuarioController');
-const CidUsuarioController = require('../../api/controllers/CidUSuarioController');
+const CidUsuarioController = require('../../api/controllers/CidUsuarioController');
 
 MedicamentoUsuarioController.cadastrarMedicamentoUsuario = jest.fn();
 ExameUsuarioController.cadastrarExameUsuario = jest.fn();

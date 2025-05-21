@@ -89,7 +89,7 @@ module.exports = {
                 maxAge: 3600000, // 1 hora
             });
 
-            res.status(200).json({message: 'Usuário logado'});
+            res.status(200).json({message: 'Usuário logado', userName: usuarioSelecionado.nome, userId: usuarioSelecionado._id});
         } catch (error) {
             console.error("Erro no login:", error);
             res.status(500).json({ error: "Erro no login do usuário." });
@@ -109,5 +109,5 @@ module.exports = {
             console.error("Erro no logout:", error);
             res.status(500).json({ error: "Erro ao realizar logout." });
         }
-    }
+    },
 };
