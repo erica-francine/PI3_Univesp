@@ -198,3 +198,12 @@ input {
 .styled-table tr:hover td {
     background-color: #e9ecef; /* Cor de fundo ao passar o mouse */
 }
+
+#alert-container {
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050; /* Certifique-se de que o alerta fique acima de outros elementos */
+    max-width: 500px; /* Limita a largura do alerta */
+}

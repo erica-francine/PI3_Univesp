@@ -9,6 +9,8 @@
 		<link rel="stylesheet" href="./css/login.css">
     </head>
     <body>
+        <div id="alert-container" class="container mt-3"></div>
+        
         <div class="container auth-container">
             <div class="auth-tabs">
                 <div class="auth-tab active" onclick="showTab('login')">Login</div>
@@ -231,56 +233,67 @@
                 });
             });
 
+            // Função para exibir alertas estilizados
+            function showAlert(message, type = 'success') {
+                const alertContainer = document.getElementById('alert-container');
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} alert-dismissible fade show`;
+                alert.role = 'alert';
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                alertContainer.appendChild(alert);
+
+                // Remover o alerta automaticamente após 5 segundos
+                setTimeout(() => {
+                    alert.remove();
+                }, 5000);
+            }
+
             // Validação do formulário de login
-            document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            document.getElementById('loginForm').addEventListener('submit', async function (e) {
                 e.preventDefault();
 
                 const cpf = document.getElementById('loginCpf').value;
                 const password = document.getElementById('loginPassword').value;
 
-                if (!validarCPF(cpf.replace(/[^\d]+/g,''))) {
+                if (!validarCPF(cpf.replace(/[^\d]+/g, ''))) {
                     document.getElementById('loginCpf').classList.add('is-invalid');
                     document.getElementById('loginCpf').nextElementSibling.style.display = 'block';
                     return;
                 }
 
-            // Remove a classe de erro se o CPF for válido
-            document.getElementById('loginCpf').classList.remove('is-invalid');
-            document.getElementById('loginCpf').nextElementSibling.style.display = 'none';
+                document.getElementById('loginCpf').classList.remove('is-invalid');
+                document.getElementById('loginCpf').nextElementSibling.style.display = 'none';
 
+                try {
+                    const response = await fetch('/user/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cpf: cpf.replace(/[^\d]+/g, ''), senha: password }),
+                    });
 
-            try {
-                // Chamada para a API de autenticação
-                const response = await fetch('/user/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cpf: cpf.replace(/[^\d]+/g, ''), senha: password })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    localStorage.setItem('usuarioLogado', JSON.stringify(data.message));
-                    localStorage.setItem('userName', JSON.stringify(data.userName));
-                    localStorage.setItem('userId', JSON.stringify(data.userId));
-                    // console.log('Resposta do servidor:', data);
-
-                    // Redireciona para a página inicial ou outra rota
-                    window.location.href = '/home';
-                } else {
-                    const error = await response.json();
-                    alert(`Erro no login: ${error.message || 'Erro desconhecido'}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('usuarioLogado', JSON.stringify(data.message));
+                        localStorage.setItem('userName', JSON.stringify(data.userName));
+                        localStorage.setItem('userId', JSON.stringify(data.userId));
+                        window.location.href = '/home';
+                    } else {
+                        const error = await response.json();
+                        showAlert(`Erro no login: ${error.message || 'Erro desconhecido'}`, 'danger');
+                    }
+                } catch (err) {
+                    console.error('Erro na requisição:', err);
+                    showAlert('Erro ao conectar ao servidor.', 'danger');
                 }
-            } catch (err) {
-                console.error('Erro na requisição:', err);
-                alert('Erro ao conectar ao servidor.');
-            }
-        });
+            });
 
             // Validação do formulário de cadastro
             document.getElementById('registerForm').addEventListener('submit', async function (e) {
                 e.preventDefault();
 
-                // Validar todos os campos
                 let isValid = true;
                 const cpf = document.getElementById('regCpf').value.replace(/[^\d]+/g, '');
                 const email = document.getElementById('regEmail').value;
@@ -318,7 +331,6 @@
                 };
 
                 try {
-                    // Chamada para a API de cadastro
                     const response = await fetch('/user/register', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -326,18 +338,15 @@
                     });
 
                     if (response.ok) {
-                        alert('Cadastro realizado com sucesso!');
-                        console.log('Usuário cadastrado:', await response.json());
-
-                        // Volta para a aba de login após o cadastro
+                        showAlert('Cadastro realizado com sucesso!', 'success');
                         showTab('login');
                     } else {
                         const error = await response.json();
-                        alert(`Erro no cadastro: ${error.message || 'Erro desconhecido'}`);
+                        showAlert(`Erro no cadastro: ${error.message || 'Erro desconhecido'}`, 'danger');
                     }
                 } catch (err) {
                     console.error('Erro na requisição:', err);
-                    alert('Erro ao conectar ao servidor.');
+                    showAlert('Erro ao conectar ao servidor.', 'danger');
                 }
             });
         </script>

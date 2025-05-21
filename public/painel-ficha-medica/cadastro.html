@@ -11,7 +11,9 @@
 		<div id="header-container"></div>
 	</head>
 	<body>
-		<div class="content-app">
+		<div id="alert-container" class="container mt-3"></div>
+
+		<div class="content-app" id="content-app">
 			<div class="header">
 				<h1>Sistema Ficha Médica Online</h1>
 			</div>
@@ -89,12 +91,30 @@
 
 				<div class="form-actions">
 					<button type="submit" class="btn btn-success" id="enviarFormulario">Enviar</button>
-					<button type="button" class="btn btn-secondary" id="limparFormulario">Limpar</button>
+					<button type="reset" class="btn btn-secondary" id="limparFormulario">Limpar</button>
 				</div>
 			</form>
 		</div>
 
 		<script>
+			// Função para exibir alertas estilizados
+			function showAlert(message, type = 'success') {
+				const alertContainer = document.getElementById('alert-container');
+				const alert = document.createElement('div');
+				alert.className = `alert alert-${type} alert-dismissible fade show`;
+				alert.role = 'alert';
+				alert.innerHTML = `
+					${message}
+					<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+				`;
+				alertContainer.appendChild(alert);
+		
+				// Remover o alerta automaticamente após 5 segundos
+				setTimeout(() => {
+					alert.remove();
+				}, 5000);
+			}
+
 			// Função para carregar o header
 			function incluirHeader() {
 				fetch('/header')
@@ -114,8 +134,16 @@
 						const firstName = userName.split(' ')[0];
 						document.getElementById('userGreeting').textContent = `Olá, ${firstName}`;
 					} else {
-						alert('Nenhum usuário logado.');
-						window.location.href = '/';
+						document.getElementById('content-app').textContent = '';
+						showAlert('Nenhum usuário logado.', 'danger');
+						localStorage.removeItem('usuarioLogado');
+						localStorage.removeItem('userName');
+						localStorage.removeItem('userId');
+						localStorage.removeItem('consultaEditada');
+						
+						setTimeout(() => {
+							window.location.href = '/';
+						}, 1500);
 					}
 				})
 				.catch(error => {
@@ -124,11 +152,12 @@
 			}
 			// Chama a função ao carregar a página
 			document.addEventListener('DOMContentLoaded', incluirHeader);
-		
+
 			function logout() {
 				localStorage.removeItem('usuarioLogado');
 				localStorage.removeItem('userName');
 				localStorage.removeItem('userId');
+				localStorage.removeItem('consultaEditada');
 				window.location.href = '/'; // Redireciona para a página de login
 			}
 
@@ -715,6 +744,12 @@
 			document.getElementById('enviarFormulario').addEventListener('click', function (e) {
 				e.preventDefault();
 
+				// Validar o formulário
+				if (!validarFormulario()) {
+					showAlert('Por favor, preencha todos os campos obrigatórios.', 'danger');
+					return;
+				}
+
 				// Verifica se é uma edição
 				const consultaEditada = JSON.parse(localStorage.getItem('consultaEditada'));
 				if (consultaEditada) {
@@ -723,6 +758,41 @@
 					cadastrarConsulta(); // Chama a função de cadastro
 				}
 			});
+
+			function validarFormulario() {
+				let isValid = true;
+
+				// Campos obrigatórios
+				const dataConsulta = document.getElementById('consultaData');
+				const nomeMedico = document.getElementById('consultaMedico');
+				const descricao = document.getElementById('consultaDescricao');
+
+				// Validar Data da Consulta
+				if (!dataConsulta.value) {
+					dataConsulta.classList.add('is-invalid');
+					isValid = false;
+				} else {
+					dataConsulta.classList.remove('is-invalid');
+				}
+
+				// Validar Nome do Médico
+				if (!nomeMedico.value.trim()) {
+					nomeMedico.classList.add('is-invalid');
+					isValid = false;
+				} else {
+					nomeMedico.classList.remove('is-invalid');
+				}
+
+				// Validar Descrição
+				if (!descricao.value.trim()) {
+					descricao.classList.add('is-invalid');
+					isValid = false;
+				} else {
+					descricao.classList.remove('is-invalid');
+				}
+
+				return isValid;
+			}
 
 			function cadastrarConsulta() {
 				// Capturar os valores dos campos
@@ -806,12 +876,14 @@
 					body: JSON.stringify(consultaData),
 				})
 				.then(data => {
-					alert('Consulta cadastrada com sucesso!');
-					window.location.href = '/home';
+					showAlert('Consulta cadastrada com sucesso!', 'success');
+					setTimeout(() => {
+						window.location.href = '/home';
+					}, 1000);
 				})
 				.catch(error => {
 					console.error('Erro ao salvar a consulta:', error);
-					alert('Erro ao salvar a consulta.');
+					showAlert('Erro ao salvar a consulta.', 'danger');
 				});
 			}
 
@@ -923,8 +995,6 @@
 					cid10,
 				};
 
-				console.log('Dados da consulta atualizada:', consultaData);
-
 				// Envia os dados atualizados para o servidor
 				fetch(`/consultaUsuario/${id}`, {
 					method: 'PUT',
@@ -934,14 +1004,16 @@
 					body: JSON.stringify(consultaData),
 				})
 				.then(() => {
-					alert('Consulta atualizada com sucesso!');
+					showAlert('Consulta atualizada com sucesso!', 'success');
 					// Limpa o localStorage e redireciona para a página de consultas
 					localStorage.removeItem('consultaEditada');
-					window.location.href = '/home';
+					setTimeout(() => {
+						window.location.href = '/home';
+					}, 1000);
 				})
 				.catch(error => {
 					console.error('Erro ao atualizar consulta:', error);
-					alert('Erro ao atualizar consulta.');
+					showAlert('Erro ao atualizar consulta.', 'danger');
 				});
 			}
 		</script>

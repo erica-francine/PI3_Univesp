@@ -11,31 +11,50 @@
   <div id="header-container"></div>
 </head>
 <body>
+    <div id="alert-container" class="container mt-3"></div>
+    
+    <div class="content-app">
+        <div class="header">
+            <h1>Consultas</h1>
+        </div>
 
-  <div class="content-app">
-    <div class="header">
-      <h1>Consultas</h1>
+        <div class="actions" style="margin-bottom: 1rem;">
+            <a href="/cadastro" onclick="localStorage.removeItem('consultaEditada')" class="btn btn-primary">+ Nova Consulta</a>
+        </div>
+
+        <table class="styled-table">
+            <thead>
+            <tr>
+                <th>Descrição</th>
+                <th>Data</th>
+                <th>Médico</th>
+                <th>Ações</th>
+            </tr>
+            </thead>
+            <tbody id="lista-consultas">
+            </tbody>
+        </table>
     </div>
-
-    <div class="actions" style="margin-bottom: 1rem;">
-      <a href="/cadastro" onclick="localStorage.removeItem('consultaEditada')" class="btn btn-primary">+ Nova Consulta</a>
-    </div>
-
-    <table class="styled-table">
-      <thead>
-        <tr>
-          <th>Descrição</th>
-          <th>Data</th>
-          <th>Médico</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="lista-consultas">
-      </tbody>
-    </table>
-  </div>
 
   <script>
+    // Função para exibir alertas estilizados
+    function showAlert(message, type = 'success') {
+        const alertContainer = document.getElementById('alert-container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.role = 'alert';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        alertContainer.appendChild(alert);
+
+        // Remover o alerta automaticamente após 5 segundos
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+
     // Função para carregar o header
     function incluirHeader() {
         fetch('/header')
@@ -56,7 +75,7 @@
                 const firstName = userName.split(' ')[0];
                 document.getElementById('userGreeting').textContent = `Olá, ${firstName}`;
             } else {
-                alert('Nenhum usuário logado.');
+                showAlert('Nenhum usuário logado.', 'danger');
                 window.location.href = '/';
             }
         })
@@ -128,15 +147,15 @@
                     consultas.splice(index, 1);
                     // Atualiza a tabela
                     exibirConsultas(consultas);
-                    alert('Consulta excluída com sucesso.');
+                    showAlert('Consulta excluída com sucesso.', 'success');
                 })
                 .catch(error => {
                     console.error('Erro ao excluir a consulta:', error);
-                    alert('Erro ao excluir a consulta.');
+                    showAlert('Erro ao excluir a consulta.', 'danger');
                 });
             }
         } else {
-            alert('Consulta não encontrada.');
+            showAlert('Consulta não encontrada.', 'warning');
         }
     }
 
