@@ -176,7 +176,8 @@
                 return response.json();
             })
             .then(data => {
-                consultas = data; // Armazena as consultas na variável global
+                // Ordena as consultas por dataConsulta (mais recente primeiro)
+                consultas = data.sort((a, b) => new Date(b.dataConsulta) - new Date(a.dataConsulta));
                 exibirConsultas(consultas);
             })
             .catch(error => {
